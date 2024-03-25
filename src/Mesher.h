@@ -63,6 +63,10 @@ namespace Clobscode
 				
 		virtual FEMesh generateMesh(TriMesh &input, const unsigned short &rl,
                                     const string &name, list<RefinementRegion *> &all_reg);
+
+        virtual FEMesh generateMesh(TriMesh &input, const unsigned short &rl,
+                                    const string &name, list<RefinementRegion *> &all_reg,
+                                    TriMesh &genMesh, const double &boundNorm, const double &threshold);
 		
         virtual FEMesh refineMesh(TriMesh &input, const unsigned short &rl,
                                   const string &name, list<unsigned int> &roctli,
@@ -98,7 +102,7 @@ namespace Clobscode
 		
 		virtual void generateGridMesh(TriMesh &input);
 		
-		virtual void linkElementsToNodes();
+		virtual void linkElementsToNodes(const int &ii);
 
 		virtual void detectInsideNodes(TriMesh &input);
 

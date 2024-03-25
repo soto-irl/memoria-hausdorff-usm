@@ -23,6 +23,8 @@
 #include "Point3D.h"
 #include "SurfTriangle.h"
 #include "SurfEdgeContainer.h"
+
+
 //#include "SurfaceEdge.h"
 #include <limits>
 #include <set>
@@ -56,9 +58,12 @@ namespace Clobscode
 		
 		virtual bool pointIsInMesh(const Point3D &pPoint);
 		
-		virtual double pointDistanceToMesh(const Point3D &pPoint);
+		virtual double pointDistanceToMesh(const Point3D &pPoint, const double &boundNorm);
 
-		virtual double meshDistanceToMesh(const vector<Clobscode::Point3D> &pMesh);
+		virtual vector<Point3D> meshDistanceToMesh(const vector<Point3D> &pMesh,
+											   const double &threshold,
+											   double &maxDist,
+											   const double &boundNorm);
 
 		virtual double pointErrorToMesh(const double &distance);
 

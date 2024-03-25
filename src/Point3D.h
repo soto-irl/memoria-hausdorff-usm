@@ -76,6 +76,8 @@ namespace Clobscode
         virtual double distance(const Point3D &p) const;
 		
 		virtual double DistanceTo(const Point3D &p) const;
+
+		virtual double NormalizedDistanceTo(const Point3D &p) const;
 				
 		virtual Point3D operator-(const Point3D &p) const;
 		
@@ -186,6 +188,10 @@ namespace Clobscode
     inline double Point3D::DistanceTo(const Point3D &p) const{
         return ((*this)-p).Norm();
     }
+
+	inline double Point3D::NormalizedDistanceTo(const Point3D &p) const{
+		return ((*this)-p).normalize().Norm();
+	}
 
 
     inline Point3D Point3D::cross(const Point3D &p) const {

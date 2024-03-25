@@ -83,7 +83,7 @@ namespace Clobscode
         }
         
         //link element and node info for code optimization.
-        linkElementsToNodes();
+        linkElementsToNodes(1);
         detectInsideNodes(input);
         
         projectCloseToBoundaryNodes(input);
@@ -97,7 +97,7 @@ namespace Clobscode
         detectInsideNodes(input);
         
         //update element and node info.
-        linkElementsToNodes();
+        linkElementsToNodes(1);
         
         //shrink outside nodes to the input domain boundary
         shrinkToBoundary(input);
@@ -162,7 +162,7 @@ namespace Clobscode
         }
         
 		//link element and node info for code optimization.
-		linkElementsToNodes();
+		linkElementsToNodes(1);
 		detectInsideNodes(input);
         
         projectCloseToBoundaryNodes(input);
@@ -176,12 +176,12 @@ namespace Clobscode
         //projectCloseToBoundaryNodes(input);
 		//removeOnSurface();
         detectInsideNodes(input);
-        
+
 		//update element and node info.
-		linkElementsToNodes();
+		linkElementsToNodes(1);
         
 		//shrink outside nodes to the input domain boundary
-		shrinkToBoundary(input);
+		//shrinkToBoundary(input);
         
         if (rotated) {
             for (unsigned int i=0; i<points.size(); i++) {
@@ -201,6 +201,159 @@ namespace Clobscode
 		return mesh;
 	}
     
+    FEMesh Mesher::generateMesh(TriMesh &input, const unsigned short &rl,
+								const string &name, list<RefinementRegion *> &all_reg,
+                                TriMesh &genMesh, const double &boundNorm, const double &threshold){
+        
+        //ATTENTION: geometric transform causes invalid input rotation when the
+        //input is a cube.
+		GeometricTransform gt;
+        
+		//rotate: This method is written below and its mostly comented because
+        //it causes conflicts when the input is a cube. Must be checked.
+        bool rotated = false; //rotateGridMesh(input, all_reg, gt);
+        
+		//generate root octants
+		generateGridMesh(input);
+        
+		//split octants until the refinement level (rl) is achieved.
+		//The output will be a one-irregular mesh.
+		generateOctreeMesh(rl,input,all_reg,name,0);
+        
+        //Any mesh generated from this one will start from the same
+        //Octants as the current state.
+        Services::WriteOctreeMesh(name,points,octants,MapEdges,gt);
+        //Some Octants will be then removed due to proximity with the surface.
+        //However we must preserve them if the oct mesh to avoid congruency
+        //problems. For this reason we will keep track of removed octants
+        //so we can easily link elements to octant index when reading an oct
+        //mesh.
+        map<unsigned int, bool> removedoct;
+        list<unsigned int> octmeshidx;
+        for (auto o: octants) {
+            removedoct[o.getIndex()] = true;
+            octmeshidx.push_back(o.getIndex());
+        }
+        
+		//link element and node info for code optimization.
+		linkElementsToNodes(1);
+		detectInsideNodes(input);
+        
+        projectCloseToBoundaryNodes(input);
+   		removeOnSurface();
+		
+		//apply the surface Patterns
+		applySurfacePatterns(input);
+        removeOnSurface();
+
+        
+        //projectCloseToBoundaryNodes(input);
+		//removeOnSurface();
+        detectInsideNodes(input);
+        
+		//update element and node info.
+		linkElementsToNodes(2);
+
+        double maxDist;
+        vector<Point3D> genPts = genMesh.getPoints();
+        vector<Point3D> surfPts;
+
+        cout << "genpts len: " << genPts.size() << endl;
+
+        list<unsigned int> surfOcts;
+        for (int i = 0; i < points.size(); i++) {
+            list<unsigned int> Octs = points.at(i).getElements();
+            int pointSize = Octs.size();
+            // cout << "pointsize: " << pointSize << endl;
+            if (pointSize > 0 && pointSize <= 4) {
+                surfPts.push_back(points.at(i).getPoint());
+                for (auto j : Octs) {
+                    surfOcts.push_back(j);
+                }
+            }
+        }
+        cout << "surfpts len: " << surfPts.size() << endl;
+        double inpGenErr;
+        double genInpErr;
+        vector<Point3D> asd2 = input.meshDistanceToMesh(genPts, threshold, inpGenErr, boundNorm);
+        vector<Point3D> asd3 = genMesh.meshDistanceToMesh(input.getPoints(), threshold, genInpErr, boundNorm);
+
+        cout << "input gen dist: " << inpGenErr << endl;
+        cout << "gen input dist: " << genInpErr << endl;
+
+
+        surfOcts.sort();
+        surfOcts.unique();
+
+
+        vector<Point3D> errPoints = input.meshDistanceToMesh(surfPts, threshold, maxDist, boundNorm);
+
+        cout << "error de hausdorff dirigido " << input.pointErrorToMesh(maxDist) << endl;
+        //cout << "errpoints size " << errPoints.size() << endl; 
+
+        list<unsigned int> errElems;
+
+        for (int i = 0; i < errPoints.size(); i++) {
+            Point3D errPt = errPoints.at(i); 
+            for (int j = 0; j < points.size(); j++) {
+                Point3D pt = points.at(j).getPoint();
+                if (errPt[0] == pt[0] && errPt[1] == pt[1] && errPt[2] == pt[2]) {
+                    list<unsigned int> ptElems = points.at(j).getElements();
+                    for (auto elem : ptElems) {
+                        //cout << elem << endl;
+                        errElems.push_back(elem);
+                    }
+                    break;
+                }
+            }
+        }
+
+        cout << "errelems size " << errElems.size() << endl;
+        errElems.sort();
+        errElems.unique();
+        cout << "errelems size " << errElems.size() << endl;
+
+        // list<unsigned int> errOcts;
+
+        // for (auto elem : errElems) {
+        //     for (unsigned int i=0; i<octants.size(); i++) {
+        //         vector <unsigned int> o_pts = octants[i].getPoints();
+        //         for (int j = 0; j<o_pts.size();j++) {
+        //             if (elem == o_pts.at(j)){
+        //                 errOcts.push_back(i);
+        //                 break;
+        //             }
+        //         }
+        //     }
+        // }
+
+        // errOcts.sort();
+        // errOcts.unique();
+
+        cout << "total surf octants: " << surfOcts.size() << endl;
+        cout << "total nodes: " << points.size() << endl;
+        cout << "octants over threshold: " << errElems.size() << endl;
+        
+		//shrink outside nodes to the input domain boundary
+		//shrinkToBoundary(input);
+        
+        if (rotated) {
+            for (unsigned int i=0; i<points.size(); i++) {
+                gt.applyInverse(points[i].getPoint());
+            }
+        }
+		
+        //the almighty output mesh
+        FEMesh mesh;
+        
+        //Write element-octant info the file
+        Services::addOctElemntInfo(name,octants,removedoct,octmeshidx);
+        
+        
+		return mesh;
+	}
+    
+
     //--------------------------------------------------------------------------------
 	//--------------------------------------------------------------------------------
 	bool Mesher::rotateGridMesh(TriMesh &input, list<RefinementRegion *> &all_reg,
@@ -1290,22 +1443,32 @@ namespace Clobscode
 	//--------------------------------------------------------------------------------
     //--------------------------------------------------------------------------------
     
-	void Mesher::linkElementsToNodes(){
+	void Mesher::linkElementsToNodes(const int &ii){
 		//clear previous information
 		for (unsigned int i=0; i<points.size(); i++) {
 			points.at(i).clearElements();
 		}
         
-        //cout << "number of octants " << octants.size() << "\n";
-		
+        // cout << "number of octants " << octants.size() << "\n";
+		// cout << "number of points " << points.size() << endl;
 		//link element info to nodes
 		for (unsigned int i=0; i<octants.size(); i++) {
 			vector <unsigned int> o_pts = octants[i].getPoints();
+            //cout << "o_pts size " << o_pts.size() << endl;
 			
 			for (unsigned int j=0; j<o_pts.size(); j++) {
+                //cout << o_pts[j] << endl;
+                //Point3D pt = points.at(o_pts[j]).getPoint();
+                // cout << pt[0] << " " << pt[1] << pt[2] << endl;
 				points.at(o_pts[j]).addElement(i);
 			}
 		}
+        // if( ii>1) {
+        //     for (int i =0; i<points.size();i++) {
+        //         cout << points.at(i).getElements().size() << endl;
+        //     }    
+        // }
+        
 	}
 	
 	//--------------------------------------------------------------------------------

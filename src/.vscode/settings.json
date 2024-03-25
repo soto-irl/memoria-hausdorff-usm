@@ -1,7 +1,20 @@
 {
     "files.associations": {
         "sstream": "cpp",
-        "*.tcc": "cpp"
+        "*.tcc": "cpp",
+        "cmath": "cpp",
+        "iostream": "cpp",
+        "limits": "cpp",
+        "string": "cpp",
+        "string_view": "cpp",
+        "chrono": "cpp",
+        "memory": "cpp",
+        "streambuf": "cpp",
+        "typeinfo": "cpp",
+        "array": "cpp",
+        "bitset": "cpp",
+        "initializer_list": "cpp",
+        "utility": "cpp"
     },
     "cmake.configureOnOpen": false,
     "C_Cpp.errorSquiggles": "disabled"

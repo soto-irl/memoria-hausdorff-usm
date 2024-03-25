@@ -18,6 +18,7 @@
  */
 
 #include "TriMesh.h"
+//#include <cmath>
 
 namespace Clobscode
 {
@@ -445,6 +446,7 @@ namespace Clobscode
 		
     }
 
+	
 	//--------------------------------------------------------------------------------
     //--------------------------------------------------------------------------------
 	bool TriMesh::pointIsInMesh(const Point3D & pPoint ){
@@ -466,7 +468,7 @@ namespace Clobscode
 		bool bIsIn = false;
 		// 0 if close to a face, 1 if close to an edge, 2 if close to a vertice
 		int faceEdgeNode = 0;
-		int iFaceEdgeNode = 0;
+		int iFaceEdgeNode = 0;		
 		
 		if (mTriangles.empty()) {
 			return false;
@@ -492,7 +494,7 @@ namespace Clobscode
 	
 	//--------------------------------------------------------------------------------
     //--------------------------------------------------------------------------------
-	double TriMesh::pointDistanceToMesh(const Point3D & pPoint ){
+	double TriMesh::pointDistanceToMesh(const Point3D & pPoint, const double &boundNorm){
 		// define if a point is inside a mesh or not
 		
 		// index of the closest triangle
@@ -510,6 +512,15 @@ namespace Clobscode
 		int faceEdgeNode = 0;
 		int iFaceEdgeNode = 0;
 		
+		// vector<double> bounds = getBounds();
+		// //calculate size of each bound axis
+		// double boundX = bounds.at(3) - bounds.at(0);
+		// double boundY = bounds.at(4) - bounds.at(1);
+		// double boundZ = bounds.at(5) - bounds.at(2);
+
+		// double boundNorm = sqrt(pow(boundX, 2) + pow(boundY, 2) + pow(boundZ, 2));
+		//cout << "bound size " << boundNorm << endl;
+
 		if (mTriangles.empty()) {
 			return false;
 		}
@@ -519,6 +530,10 @@ namespace Clobscode
 			// computing the distance for this face (triangle)
 			SignedDistToTriangle(pPoint,iSurfF,closestDist,pDist,pProjP,pIsIn,faceEdgeNode);
 			
+			pDist = pDist / boundNorm;
+			//cout << "distance " << pDist << endl;
+
+
 			//pDist = fabs(pDist);
 			
 			if (fabs(pDist) < fabs(closestDist)) {
@@ -532,35 +547,54 @@ namespace Clobscode
 		return closestDist;
 	}
 
-	double TriMesh::meshDistanceToMesh(const vector<Clobscode::Point3D> &pMesh) {
+	vector<Point3D> TriMesh::meshDistanceToMesh(const vector<Clobscode::Point3D> &pMesh, const double &threshold, double &maxDist, const double &boundNorm) {
 		//calculate distance from a mesh to another
 
 		//the distance is calculated as the maximum of the minimum distance of every point to the mesh,
 		//so we start at 0
-		double maxDist = 0.0;
+		//double maxDist = 0.0;
 		//point used in for loop
-		Point3D pPoint;
+		//Point3D pPoint;
 		//closest distance for the current point
 		double currentClosestDist;
 		//array to store the min dists from points to the mesh
 		vector<double> minDists;
 
 		vector<double> errors;
+		double maxError = -1;
 
+		vector<Point3D> outVec;
+		//cout << "threshold " << threshold << endl;
 		for(int i= 0; i < pMesh.size(); i++) {
 			//calculate point distance to mesh
-			pPoint = pMesh.at(i);
-			currentClosestDist = pointDistanceToMesh(pPoint);
-			
+			Point3D pPoint = pMesh.at(i);
+			currentClosestDist = pointDistanceToMesh(pPoint, boundNorm);
+			//cout << "distance point " << i << ": " << currentClosestDist << endl;
 			//calculate error of point to mesh
 			double errorP = pointErrorToMesh(currentClosestDist) * 100;
-			cout << "error point " << i << ": " << errorP << endl;
+			//cout << "error point " << i << ": " << errorP << endl;
+			if (errorP - threshold > 0) {
+				//cout << "point over threshold " << endl;
+				outVec.push_back(pPoint);
+				//cout << outVec.size() << endl;
+			}
 			errors.push_back(errorP);
 
 			//store the distances in the array
 			minDists.push_back(currentClosestDist);
 		}
 
+		double errorAvg;
+		for (double i : errors) {
+			errorAvg += i;
+			if (i > maxError) {
+				maxError = i;
+			}
+			
+		}
+		errorAvg /= errors.size();
+		cout << "error promedio: " << errorAvg << endl;
+		cout << "max error: " << maxError << endl;
 		//compare the distances, if the magnitude is bigger, we keep it
 		for(int i = 0; i < minDists.size(); i++) {
 			if (fabs(minDists.at(i)) > fabs(maxDist)) {
@@ -568,8 +602,8 @@ namespace Clobscode
 			}
 		}
 
-		cout << "distancia entre mallas: " << maxDist << endl;
-		return maxDist;	
+		cout << "hausdorff dirigido: " << maxDist << endl;
+		return outVec;	
 	}
 	
 	//--------------------------------------------------------------------------------
