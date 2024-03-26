@@ -281,21 +281,23 @@ int main(int argc,char** argv){
     //Generate the mesh following the above constraints.
 	Clobscode::Mesher mesher;
     Clobscode::FEMesh output;
+
+    // if the program recieves 2 input meshes, it compares them
+    // ideally in the future this changes to not requiring 2 inputs, instead obtaining the surface of the generated mesh within this program to be able to measure error, and to not have to run the program twice.
     if(inputs.size() == 2) {
-        // vector<Point3D> domPts = inputs.at(0).getPoints()
+        // obtain the bounds of the generated mesh to calculate the normalizer
         vector<double> genBounds = inputs.at(1).getBounds();
 		//calculate size of each bound axis
 		double boundX = genBounds.at(3) - genBounds.at(0);
 		double boundY = genBounds.at(4) - genBounds.at(1);
 		double boundZ = genBounds.at(5) - genBounds.at(2);
         double boundNorm = sqrt(pow(boundX, 2) + pow(boundY, 2) + pow(boundZ, 2));
+        
+        //runs the mesher to obtain octant data
+        //i didn't have time to understand how to add the threshold as a parameter so it's hardcoded here as the last value. whoops.
         output = mesher.generateMesh(inputs.at(0),ref_level,out_name,all_regions, inputs.at(1), boundNorm, 0.01);
-
-        //double mxDst;
-        //vector<Point3D> asd = inputs.at(1).meshDistanceToMesh(inputs.at(0).getPoints(), 0.1, mxDst, boundNorm);
-        //cout << "this one " << mxDst << endl;
-        //cout << "error dirigido 2 " << inputs.at(1).pointErrorToMesh(mxDst) << endl;
     }
+    // if the program recieves 1 input mesh, generates a volume mesh like normal
     else if (!octant_start) {
         output = mesher.generateMesh(inputs.at(0),ref_level,out_name,all_regions);
         
@@ -336,69 +338,6 @@ int main(int argc,char** argv){
         delete *rriter;
     }
 
-
-    // if(inputs.size() == 2) {
-    //     auto start_time2 = chrono::high_resolution_clock::now();
-
-    //     vector<Point3D> genMesh = inputs.at(1).getPoints();
-    //     vector<double> genBounds = inputs.at(1).getBounds();
-	// 	//calculate size of each bound axis
-	// 	double boundX = genBounds.at(3) - genBounds.at(0);
-	// 	double boundY = genBounds.at(4) - genBounds.at(1);
-	// 	double boundZ = genBounds.at(5) - genBounds.at(2);
-    //     double boundNorm = sqrt(pow(boundX, 2) + pow(boundY, 2) + pow(boundZ, 2));
-
-    //     double maxDist;
-        
-    //     vector<Point3D> points = inputs.at(0).meshDistanceToMesh(genMesh, 6.12e-8, maxDist, boundNorm);
-    //     //cout << points.size() << endl;
-    //     vector<int> errorPts;
-    //     list<int> errorElems;
-    //     //se itera sobre los puntos de la malla argumento, por lo que aqui se calcula desde la generada a la original
-    //     cout << "full mesh: " << maxDist << "\n"; //generada a original
-    //     vector<Clobscode::Point3D> outputPts = output.getPoints();
-    //     vector<vector<unsigned int>> outputElem = output.getElements();
-    //     for(int i = 0; i < points.size(); i++) {
-    //         Point3D cur = genMesh.at(points.at(i));
-    //         for(int j = 0; j < outputPts.size(); j++) {
-    //             Point3D com = outputPts.at(j);
-    //             //cout << com[0] << " " << com[1] << " " << com[2] << endl;
-    //             if (round(cur.X()) == round(com.X()) &&
-    //             round(cur.Y()) == round(com.Y()) &&
-    //             round(cur.Z()) == round(com.Z())) {
-    //                 errorPts.push_back(j);
-    //                 break;
-    //             }
-    //         }
-    //     }
-    //     for(int i = 0; i < errorPts.size(); i++) {
-    //         for(unsigned int j = 0; j < outputElem.size(); j++){
-    //             //no break porque el nodo puede pertenecer a varios elementos
-    //             vector<unsigned int> curElem = outputElem.at(j);
-    //             // if (find(curElem.begin(), curElem.end(), errorPts.at(i)) != curElem.end())
-    //             //     errorElems.push_back((int) j);
-    //             for (int k = 0; k < curElem.size(); k++) {
-    //                 if (errorPts.at(i) == curElem.at(k)) {
-    //                     errorElems.push_back((int) j);
-    //                 }
-    //             }
-    //         }
-    //     }
-
-    //     errorElems.sort();
-    //     errorElems.unique();
-    //     cout << "elements over threshold " << errorElems.size() << endl;
-    //     cout << "total elements " << outputElem.size() << endl;
-    //     cout << "total points " << outputPts.size() << endl;
-    //     // for(int curElem : errorElems) {
-    //     //     cout << "elemento: " << curElem << endl;
-    //     // }
-
-    //     auto end_time2 = chrono::high_resolution_clock::now();
-    //     cout << "  All done in " << chrono::duration_cast<chrono::milliseconds>(end_time2-start_time2).count();
-    //     cout << " ms"<< endl;
-    // }
-    
 	return 0;
 }
 

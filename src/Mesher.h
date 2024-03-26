@@ -102,7 +102,7 @@ namespace Clobscode
 		
 		virtual void generateGridMesh(TriMesh &input);
 		
-		virtual void linkElementsToNodes(const int &ii);
+		virtual void linkElementsToNodes();
 
 		virtual void detectInsideNodes(TriMesh &input);
 
